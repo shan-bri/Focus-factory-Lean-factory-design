@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breezeway Focused Factory Simulator</title>
+<style>
+:root{
+  --ink:#1B2A3A; --ink2:#2F4358; --accent:#F2A541; --accent-soft:#FCE9CC; --bg:#F1F3F5; --card:#fff;
+  --muted:#5D6B79; --line:#D5DBE1; --ok:#2E7D32; --ok-soft:#DCEFD8; --bad:#B3392C; --bad-soft:#F7D9D4;
+  --f1:#3B82C4; --f2:#3A9A5B; --f3:#D9822B; --f4:#8A5CC2;
+  --t1:#D6E6F5; --t2:#D8EEDD; --t3:#F8E1C8; --t4:#E6DCF3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45}
+header{background:var(--ink);color:#fff;padding:16px 22px 0}
+header h1{margin:0 0 12px;font-size:22px;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:transparent;border:0;color:#C9D4DF;padding:10px 14px;font:inherit;font-size:14px;cursor:pointer;border-radius:6px 6px 0 0}
+nav button.active{background:var(--bg);color:var(--ink);font-weight:600}
+nav button:hover:not(.active){background:var(--ink2)}
+main{max-width:1240px;margin:0 auto;padding:18px 16px 40px}
+section.tab{display:none} section.tab.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin-bottom:16px}
+h2{font-size:19px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+h3{font-size:16px;margin:0 0 8px}
+.lead{color:var(--muted);margin:0 0 12px}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.grow{flex:1 1 360px;min-width:0}
+button.btn{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;margin:2px 4px 2px 0}
+button.btn.alt{background:#fff;color:var(--ink);border:1px solid var(--ink)}
+button.btn.acc{background:var(--accent);color:var(--ink)}
+button.btn.small{padding:4px 9px;font-size:13px}
+button.btn:disabled{opacity:.4;cursor:default}
+select,input[type=number],input[type=text]{font:inherit;font-size:14px;padding:5px 6px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink)}
+table.data{border-collapse:collapse;width:100%;font-size:14px}
+table.data th{background:var(--ink);color:#fff;text-align:left;padding:6px 8px;font-weight:600}
+table.data td{border-bottom:1px solid var(--line);padding:5px 8px;vertical-align:top}
+.scroll{overflow-x:auto}
+.note{font-size:13px;color:var(--muted)}
+.fb{margin-top:10px;padding:10px 12px;border-radius:6px}
+.fb.good{background:var(--ok-soft)} .fb.poor{background:var(--bad-soft)} .fb.info{background:var(--accent-soft)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:10px 0}
+.kpi{background:var(--bg);border-radius:6px;padding:10px 12px}
+.kpi b{display:block;font-size:22px}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi em{font-style:normal;font-size:13px}
+.up{color:var(--bad)} .down{color:var(--ok)}
+ol.steps li{margin-bottom:6px}
+/* matrix */
+table.mx{border-collapse:collapse;font-size:13px}
+table.mx th,table.mx td{border:1px solid var(--line);text-align:center;padding:3px 5px;height:28px}
+table.mx th{background:var(--ink);color:#fff;font-weight:600}
+table.mx td.name{text-align:left;white-space:nowrap}
+table.mx td.one{font-weight:700}
+.f1{background:var(--t1)} .f2{background:var(--t2)} .f3{background:var(--t3)} .f4{background:var(--t4)}
+/* floor */
+.floorbox{display:flex;align-items:stretch;gap:6px}
+.dock{writing-mode:vertical-rl;transform:rotate(180deg);background:var(--ink2);color:#fff;font-size:12px;text-align:center;border-radius:4px;padding:6px 3px;letter-spacing:.08em}
+.dock.r{transform:none}
+.floorwrap{position:relative;flex:1;min-width:0}
+.floor{display:grid;grid-template-columns:repeat(14,1fr);grid-template-rows:repeat(8,1fr);aspect-ratio:14/8;border:2px solid var(--ink);border-radius:4px;background:#FAFBFC;user-select:none}
+.tilec{border:1px dashed #E1E6EB;position:relative}
+.tilec.target{background:#EEF4FA;cursor:copy}
+.mach{position:absolute;inset:3px;border-radius:6px;background:#fff;border:2px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;line-height:1.1;cursor:grab;touch-action:none;overflow:hidden}
+.mach b{font-size:14px}
+.mach small{font-size:9px;color:var(--muted);text-align:center}
+.mach.fixed{border-style:double;border-width:4px;cursor:not-allowed;background:#EEF0F2}
+.mach.c1{background:var(--t1)} .mach.c2{background:var(--t2)} .mach.c3{background:var(--t3)} .mach.c4{background:var(--t4)}
+.mach.sel{outline:3px solid var(--accent);outline-offset:1px}
+.mach .badge{position:absolute;top:1px;right:2px;background:var(--bad);color:#fff;border-radius:8px;font-size:10px;padding:0 4px;display:none}
+.mach.busy{box-shadow:0 0 0 3px var(--ok) inset}
+.floorwrap canvas{position:absolute;left:0;top:0;pointer-events:none}
+.palette{display:grid;grid-template-columns:1fr;gap:6px}
+.pal{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:#fff}
+.pal.active{border-color:var(--accent);background:var(--accent-soft)}
+.pal .code{font-weight:700;width:30px}
+.pal .cnt{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.tool{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px}
+.tool.active{border-color:var(--ink);background:var(--ink);color:#fff}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px;border:1px solid #9AA6B2}
+.bar{height:16px;background:#E6EAEE;border-radius:3px;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink2)}
+.bar u{position:absolute;top:0;bottom:0;background:var(--accent);text-decoration:none}
+.check{font-weight:600}
+.pk{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}.pk div{background:var(--bg);border-radius:8px;padding:14px}.pk b{display:block;font-size:34px}.pk span{color:var(--muted);font-size:14px}
+#pitch .mach small{display:none} #pitch .mach b{font-size:12px}
+.legend span{display:inline-block;margin-right:12px;font-size:13px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media (max-width:700px){
+  header h1{font-size:17px} nav button{padding:8px 8px;font-size:12px}
+  .mach small{display:none} .mach b{font-size:10px} .mach{inset:1px;border-width:1px}
+  .dock{font-size:9px;padding:3px 1px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Breezeway Fans: Focused Factory Simulator</h1>
+  <nav id="nav">
+    <button data-tab="brief" class="active">1. Brief</button>
+    <button data-tab="fam">2. Product families</button>
+    <button data-tab="floor">3. Build the factory</button>
+    <button data-tab="run">4. Simulate</button>
+    <button data-tab="debrief">5. Debrief</button>
+  </nav>
+</header>
+<main>
+
+<!-- ================= BRIEF ================= -->
+<section class="tab active" id="brief">
+  <div class="card">
+    <h2>The brief</h2>
+    <p><b>Breezeway Fans Ltd</b> (a fictional company) makes four models of electric fan: two high-volume <b>domestic</b> models and two low-volume <b>industrial</b> models. Every fan is pressed, machined, wound, assembled, tested and packed; the industrial fans also need dynamic balancing.</p>
+    <p>The plant runs a <b>push, batch-and-queue</b> system in a <b>process layout</b>: machines are grouped by type, and each model is released once a week as one large batch. Lead times are long, there is a lot of work in progress, and parts travel back and forth across the floor.</p>
+    <p>Breezeway is moving to a larger site. The managers disagree: <b>one mixed-model line for all four fans, or two focused factories</b> (domestic and industrial)? <b>Your task:</b> design the new factory, choose a batch size, and prove with the simulator which option is better, and under what conditions.</p>
+    <ol class="steps">
+      <li><b>Product families:</b> use visual process-routing analysis to see which models follow the same route, then the capacity check to decide: one family or two?</li>
+      <li><b>Build the factory:</b> place machines and tag them to cells. Buy extra machines if a cell needs them. The press cannot be moved.</li>
+      <li><b>Simulate:</b> run one month (4 weeks) and compare your design with the current factory.</li>
+      <li><b>Improve and debrief:</b> test the alternative, record your runs, and answer the debrief questions.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3>Targets set by the operations manager</h3>
+    <div class="scroll"><table class="data">
+      <tr><th>Measure</th><th>Target</th></tr>
+      <tr><td>Average lead time (release to dispatch)</td><td>≤ 1.5 working days</td></tr>
+      <tr><td>Average work in progress</td><td>≤ 200 fans</td></tr>
+      <tr><td>Forklift moves</td><td>≤ 60 per week (smaller batches mean more trips, so keep each flow compact)</td></tr>
+      <tr><td>Busiest machine utilisation</td><td>≤ 90%</td></tr>
+      <tr><td>Capital spend (new machines + relocations)</td><td>≤ £300,000</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <h3>Products: monthly demand and routings</h3>
+    <p class="note">Operating time: 2 shifts × 7.5 h × 20 days per month. Cycle times are minutes per unit.</p>
+    <div class="scroll"><table class="data" id="partsTable"></table></div>
+  </div>
+  <div class="card">
+    <h3>Machines</h3>
+    <div class="scroll"><table class="data" id="typesTable"></table></div>
+  </div>
+  <div class="card">
+    <h3>How the model works</h3>
+    <ul class="note">
+      <li>The model first runs a 3-week warm-up so the factory is in a normal, steady state, then measures one month (4 weeks of 5 days, 2 shifts × 7.5 h). All results and the playback cover that measured month.</li>
+      <li>Each model is released as a batch every <i>N</i> days of demand (you choose <i>N</i>). Batches queue first-in, first-out at each machine.</li>
+      <li><b>Availability</b> stretches processing time (e.g. 88% availability means 10 min of work takes about 11.4 min).</li>
+      <li><b>Changeover:</b> none if the machine last ran the same model; <b>20%</b> of the full changeover if it last ran a model of the same family (domestic or industrial); otherwise the full changeover.</li>
+      <li><b>Moves:</b> machines within 10 m (2 tiles) can pass parts by hand (about 2 min). Longer moves need a forklift or pallet truck: about 30 min average wait plus travel.</li>
+      <li><b>One-piece flow:</b> when consecutive operations are in the <i>same cell</i> and within 10 m, the next machine can start as soon as the first unit arrives.</li>
+      <li>A model uses machines in its own cell first, then shared machines, then machines in other cells (inter-cell moves).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= FAMILIES ================= -->
+<section class="tab" id="fam">
+  <div class="card">
+    <h2>Product families</h2>
+    <p class="lead">Assign each model to a family (1–4). Family <i>k</i> will be made in Cell <i>k</i>. One family for all four models means one mixed-model line.</p>
+    <p class="note" style="margin:-4px 0 10px"><b>How to read the matrix:</b> models are listed by volume (highest first) and machines in process order. Numbers are cycle times (minutes per unit); a blank means the model does not use that machine.</p>
+    <div class="fb info" style="margin:0 0 10px"><b>Visual process-routing analysis:</b> with only a few models and machines, you can find families by looking at the routings. Start with the highest-volume models. Which models follow the same route? Which differ, and how (extra operations, longer cycle times, volume)?</div>
+    <div>
+      <button class="btn" id="origBtn">Visual routing analysis (by volume)</button>
+      <button class="btn alt" id="boaBtn">Check with BOA (optional)</button>
+      <button class="btn alt" id="clearFam">Clear families</button>
+      <button class="btn alt" id="hintFam">Show a suggested grouping</button>
+    </div>
+    <div class="scroll" style="margin-top:10px"><table class="mx" id="mx"></table></div>
+    <div class="fb info" id="famFb">Choose a family for every part.</div>
+  </div>
+  <div class="card">
+    <h3>Cell capacity check</h3>
+    <p class="lead">Weekly machine hours each family needs (processing ÷ availability, plus an allowance for short changeovers at one batch per day). One machine gives 75 h per week; plan to stay below about 85%.</p>
+    <div class="scroll"><table class="data" id="capTable"></table></div>
+  </div>
+</section>
+
+<!-- ================= FLOOR ================= -->
+<section class="tab" id="floor">
+  <div class="card">
+    <h2>Build the factory</h2>
+    <p class="lead">Each tile is 5 m. <b>Place:</b> choose a machine type, then click an empty tile. <b>Move:</b> drag a machine. <b>Cell tag:</b> pick a colour, then click machines. Parts flow from <b>Stores</b> (left) to <b>Dispatch</b> (right).</p>
+    <div class="row">
+      <div class="grow" style="flex:3 1 560px">
+        <div class="tools" id="tools"></div>
+        <div class="floorbox"><div class="dock">STORES</div><div class="floorwrap" id="floorwrap"><div class="floor" id="floorGrid"></div><canvas id="anim"></canvas></div><div class="dock r">DISPATCH</div></div>
+        <div style="margin-top:8px">
+          <button class="btn alt" id="loadBase">Load current factory</button>
+          <button class="btn alt" id="clearFloor">Clear floor</button>
+          <button class="btn alt" id="removeSel" disabled>Remove selected</button>
+        </div>
+        <div class="fb info" id="floorFb">Tip: keep each cell compact (machines within 2 tiles of the next operation) so parts can be passed by hand.</div>
+      </div>
+      <div class="grow" style="flex:1 1 260px">
+        <h3>Machines</h3>
+        <div class="palette" id="palette"></div>
+        <div class="kpis" style="grid-template-columns:1fr 1fr"><div class="kpi"><b id="capex">£0</b><span>capital spend</span></div><div class="kpi"><b id="moved">0</b><span>machines relocated (£5k each)</span></div></div>
+        <div id="tagInfo" class="fb info" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RUN ================= -->
+<section class="tab" id="run">
+  <div class="card">
+    <h2>Simulate four weeks</h2>
+    <div class="row" style="align-items:center;margin-bottom:6px">
+      <b>Choose the round:</b>
+      <button class="btn" id="r1Btn">Round 1: normal month</button>
+      <button class="btn alt" id="r2Btn">Round 2: variation and disruptions</button>
+    </div>
+    <p class="note" id="roundNote"></p>
+    <div class="row" style="align-items:center">
+      <label>Batch size&nbsp;<select id="batchSel">
+        <option value="0.5">½ day of demand</option><option value="1">1 day of demand</option><option value="2">2 days of demand</option><option value="3">3 days of demand</option><option value="5" selected>5 days (1 week) of demand</option><option value="10">10 days of demand</option>
+      </select></label>
+      <label><input type="checkbox" id="flowChk" checked> One-piece flow inside cells</label>
+      <button class="btn acc" id="runBtn">Run simulation</button>
+      <button class="btn alt" id="clearRun" title="Clear the results on screen (your run history is kept)">Clear results</button>
+      <input type="text" id="runName" placeholder="Name this run (optional)" style="width:200px">
+    </div>
+    <div id="disrupt" style="margin:10px 0;display:none;border:1px solid var(--line);border-radius:6px;padding:10px 12px"><b>Round 2 settings</b> <span class="note">(+15% demand and late supplier deliveries are switched on; add extras only when your tutor tells you)</span>
+      <div style="margin-top:8px;display:grid;gap:6px">
+        <label><input type="checkbox" id="dSurge"> <b>Customer demand +15%</b> for every model</label>
+        <label><input type="checkbox" id="dLate"> <b>Supplier reliability falls 20%:</b> 1 in 5 material deliveries arrives ½–2 days late</label>
+        <span class="note" style="margin-top:4px">Extra challenges</span>
+        <label><input type="checkbox" id="dAnod"> <b>Press breakdown:</b> the press is out of action for 1 day (week 2, day 3)</label>
+        <label><input type="checkbox" id="dBudget"> <b>Budget cut:</b> the capital budget falls from £300,000 to £150,000</label>
+        <label><input type="checkbox" id="dVary"> <b>Real-world variation:</b> process times vary and machines break down at random</label>
+        <span class="note" style="margin-top:4px">Your countermeasure (applies to your design only)</span>
+        <label><input type="checkbox" id="cBuffer"> <b>Raw-material buffer:</b> hold 1 day of demand in stores, which absorbs supplier delays of up to 1 day</label>
+      </div>
+      <p class="note">The current factory is re-run under the same disruptions (without your countermeasure), so the comparison stays fair.</p>
+    </div>
+    <div class="row" style="align-items:center"><label>Team name&nbsp;<input type="text" id="teamName" placeholder="e.g. Team Cyclone" style="width:180px"></label><button class="btn alt" id="pitchBtn" disabled>Pitch view</button></div>
+    <div id="runMsg" class="fb info">The current factory (process layout, weekly batches) is the baseline. Build your design, then run it.</div>
+    <div id="liveBox" style="margin-top:12px">
+      <div class="row" style="align-items:center">
+        <button class="btn alt" id="playBtn" disabled>▶ Play</button>
+        <button class="btn alt" id="skipBtn" style="display:none">Skip to results</button>
+        <label class="note">Speed <select id="speed"><option value="60">1 h/s</option><option value="180">3 h/s</option><option value="480" selected>8 h/s</option><option value="900">1 day/s</option></select></label>
+        <input type="range" id="timeSlider" min="0" max="18000" value="0" style="flex:1;min-width:160px">
+        <span id="clock" class="note" style="min-width:150px">Week 1 · Day 1 · 06:00</span>
+      </div>
+      <div class="kpis" id="liveKpis"></div>
+      <div class="legend" id="famLegend"></div>
+      <div class="floorbox" style="margin-top:8px"><div class="dock">STORES</div><div class="floorwrap" id="floorwrap2"><div class="floor" id="floorGrid2"></div><canvas id="anim2"></canvas></div><div class="dock r">DISPATCH</div></div>
+      <p class="note">Dots are batches moving (coloured by family); hollow dots are waiting for a forklift. Green outline = machine working; red badge = batches waiting.</p>
+    </div>
+    <h3 id="finalHead" style="margin-top:14px;display:none">Results for the month</h3>
+    <div class="kpis" id="kpis"></div>
+    <div id="scorecard"></div>
+  </div>
+  <div class="card">
+    <h3>Machine utilisation</h3>
+    <p class="note">The <b>average by machine type, processing only</b> is what the paper calculation gives (load ÷ units × available time × availability). The simulator also shows changeovers and how the work is actually split between identical machines.</p>
+    <div class="scroll"><table class="data" id="utilSummary" style="margin-bottom:12px"></table></div>
+    <p class="note">Each machine: dark = processing, orange = changeover. Above 85–90% queues grow quickly.</p>
+    <div id="utilBars"></div>
+  </div>
+  <div class="card">
+    <h3>Run history</h3>
+    <div class="scroll"><table class="data" id="history"></table></div>
+    <button class="btn alt" id="csvBtn">Download results (CSV)</button>
+    <button class="btn alt" id="clearHist">Clear history</button>
+  </div>
+</section>
+
+<!-- ================= DEBRIEF ================= -->
+<section class="tab" id="debrief">
+  <div class="card">
+    <h2>Debrief</h2>
+    <p class="lead">Answer with evidence from your run history.</p>
+    <ol>
+      <li>Did you choose one mixed-model line or two focused factories? What numbers convinced you?</li>
+      <li>Your capacity check: which machine limits each option? What did you buy or move to fix it, and was it worth the money?</li>
+      <li>Compare weekly, daily and half-day batches. Why does a focused factory cope better with small batches? Use the changeover hours.</li>
+      <li>Which machines have low utilisation in your design? Is that a problem? Link it to the disadvantages of focused factories from the lecture.</li>
+      <li>Under +15% demand and late supplier deliveries, which design was more robust? Which countermeasure helped most, and what did it cost?</li>
+      <li>The press could not be moved. Which form of focused factory does that create for pressing (flow line, workcell or workcenter)?</li>
+      <li>Name two things this model leaves out that would matter in a real plant (for example operators and skills, quality and rework, maintenance, demand changes).</li>
+    </ol>
+  </div>
+</section>
+</main>
+<div id="pitch" style="display:none;position:fixed;inset:0;background:rgba(15,25,35,.92);z-index:50;overflow:auto">
+  <div style="max-width:1100px;margin:24px auto;background:#fff;border-radius:10px;padding:24px 28px;position:relative">
+    <button class="btn alt" id="pitchClose" style="position:absolute;right:16px;top:16px">Close</button>
+    <div id="pitchBody"></div>
+  </div>
+</div>
+<footer>Breezeway Fans · Focused factory simulator</footer>
+<script>
+// ===== Scenario data & simulation engine =====
+const TILE = 5;            // metres per grid tile
+const FAM_SETUP = 0.2;     // setup fraction when previous job was same family
+const FORKLIFT_WAIT = 30;  // average wait for a forklift / pallet truck (min)
+const HAND_DIST = 10;      // moves up to this distance (m) are hand transfers
+const GRID_W = 14, GRID_H = 8;
+const DAY = 900;           // 2 shifts x 7.5 h, minutes
+const WEEK = 5 * DAY;      // working minutes per week
+const WEEKS = 4;           // one month = 4 weeks = 20 days
+const WARM = 3 * WEEK;     // warm-up so the factory reaches a normal, steady state
+const HORIZON = WARM + WEEKS * WEEK; // end of the measured month
+const inW = t => t >= WARM && t < HORIZON;
+const STORES = { x: -1, y: 3.5 }, DISPATCH = { x: GRID_W, y: 3.5 };
+
+const TYPES = {
+  PR: { name: 'Power press', short: 'Press', have: 1, cost: null, fixed: true, setup: 30, avail: 0.90 },
+  CN: { name: 'CNC machining centre', short: 'CNC', have: 2, cost: 180000, setup: 45, avail: 0.88 },
+  WD: { name: 'Motor winder', short: 'Winder', have: 2, cost: 60000, setup: 20, avail: 0.92 },
+  AS: { name: 'Assembly station', short: 'Assembly', have: 3, cost: 15000, setup: 15, avail: 0.90 },
+  BL: { name: 'Dynamic balancer', short: 'Balancer', have: 1, cost: 45000, setup: 10, avail: 0.95 },
+  TS: { name: 'Test rig', short: 'Test', have: 2, cost: 40000, setup: 10, avail: 0.94 },
+  PK: { name: 'Packing bench', short: 'Pack', have: 1, cost: 10000, setup: 5, avail: 0.97 }
+};
+const TYPE_ORDER = ['PR', 'CN', 'WD', 'AS', 'BL', 'TS', 'PK'];
+
+// demand = units per week (monthly demand / 4); fam = true technological family (setup similarity)
+const PARTS = [
+  { id: 1, name: 'Desk fan',             mat: 'Domestic',   fam: 'D', monthly: 900, demand: 225,  route: [['PR', 2], ['CN', 10], ['WD', 8], ['AS', 14], ['TS', 6], ['PK', 3]] },
+  { id: 2, name: 'Tower fan',            mat: 'Domestic',   fam: 'D', monthly: 600, demand: 150,  route: [['PR', 3], ['CN', 12], ['WD', 10], ['AS', 18], ['TS', 7], ['PK', 4]] },
+  { id: 3, name: 'Industrial wall fan',  mat: 'Industrial', fam: 'I', monthly: 250, demand: 62.5, route: [['PR', 5], ['CN', 18], ['WD', 16], ['AS', 30], ['BL', 12], ['TS', 12], ['PK', 6]] },
+  { id: 4, name: 'Ducted extractor fan', mat: 'Industrial', fam: 'I', monthly: 150, demand: 37.5, route: [['PR', 6], ['CN', 24], ['WD', 20], ['AS', 40], ['BL', 15], ['TS', 15], ['PK', 8]] }
+];
+
+// Current process layout (functional areas, scattered)
+const BASELINE = [
+  ['PR', 1, 0], ['CN', 1, 5], ['CN', 2, 6], ['WD', 5, 0], ['WD', 6, 0],
+  ['AS', 6, 5], ['AS', 7, 5], ['AS', 8, 5], ['BL', 11, 6], ['TS', 3, 2], ['TS', 4, 2], ['PK', 12, 1]
+];
+const FIXED_POS = { PR: [1, 0] };
+
+function procTime(m, part, qty, opTime) {
+  const T = TYPES[m.type];
+  if (T.cycle) return T.cycle;
+  let setup = T.setup;
+  if (m.lastPart === part.id) setup = 0;
+  else if (m.lastFam === part.fam) setup = T.setup * FAM_SETUP;
+  return setup + qty * opTime;
+}
+function setupOf(m, part) {
+  const T = TYPES[m.type];
+  if (T.cycle) return 0;
+  if (m.lastPart === part.id) return 0;
+  if (m.lastFam === part.fam) return T.setup * FAM_SETUP;
+  return T.setup;
+}
+function moveTime(a, b) { const d = (Math.abs(a.x - b.x) + Math.abs(a.y - b.y)) * TILE; if (d === 0) return { d, t: 0, fork: false }; if (d <= HAND_DIST) return { d, t: 2 + d / 40, fork: false }; return { d, t: FORKLIFT_WAIT + d / 25, fork: true }; }
+
+/**
+ * layout: [{type,x,y,cell}]  cell 0 = shared
+ * assign: {partId: familyNumber (1..4) or 0 = none}
+ * batch: batch size
+ */
+function simulate(layout, assign, batchDays, opts = {}) {
+  const machines = layout.map((m, i) => ({ id: i, type: m.type, x: m.x, y: m.y, cell: m.cell || 0, queue: [], busy: 0, slots: TYPES[m.type].slots || 1, busyUntil: 0, busyTime: 0, setupTime: 0, lastPart: null, lastFam: null, qtyDone: 0 }));
+  const byType = {}; machines.forEach(m => (byType[m.type] = byType[m.type] || []).push(m));
+  const missing = [...new Set(PARTS.flatMap(p => p.route.map(r => r[0])))].filter(t => !byType[t]);
+  if (missing.length) return { error: 'No ' + missing.map(t => TYPES[t].name).join(', ') + ' on the floor.' };
+
+  // event queue (binary heap)
+  const H = []; let seq = 0;
+  const push = (t, fn) => { H.push({ t, s: seq++, fn }); let i = H.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (H[p].t < H[i].t || (H[p].t === H[i].t && H[p].s < H[i].s)) break; [H[p], H[i]] = [H[i], H[p]]; i = p; } };
+  const pop = () => { const top = H[0]; const last = H.pop(); if (H.length) { H[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; const lt = (a, b) => H[a].t < H[b].t || (H[a].t === H[b].t && H[a].s < H[b].s); if (l < H.length && lt(l, m)) m = l; if (r < H.length && lt(r, m)) m = r; if (m === i) break; [H[m], H[i]] = [H[i], H[m]]; i = m; } } return top; };
+
+  const batches = []; const moves = []; const qlog = []; const busyLog = [];
+  // disruptions
+  let seed = (opts.seed || 12345) >>> 0;
+  const rng = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const tri = (a, c, b) => { const u = rng(), f = (c - a) / (b - a); return u < f ? a + Math.sqrt(u * (b - a) * (c - a)) : b - Math.sqrt((1 - u) * (b - a) * (b - c)); };
+  const down = opts.down || []; const late = opts.late || null; const bufferDays = opts.bufferDays || 0; let lateCount = 0, lateHit = 0; const vary = !!opts.variability; let breakdowns = 0;
+  const demandOf = p => p.demand * (opts.demandMult ? opts.demandMult(p) : 1);
+  const flow = opts.flow !== false; let flowOps = 0, forkMoves = 0, wipUnits = 0, wipArea = 0, lastT = WARM, travel = 0, interCell = 0, totalMoves = 0;
+  const wipAt = t => { const a = Math.max(lastT, WARM), b = Math.min(t, HORIZON); if (b > a) wipArea += wipUnits * (b - a); lastT = Math.max(lastT, t); };
+
+  function estFree(m, now) { let t = Math.max(now, m.busyUntil); m.queue.forEach(q => { t += q.est / m.slots; }); return t; }
+  function choose(b, type, from, now) {
+    const fam = assign[b.part.id] || 0;
+    let cands = byType[type];
+    if (fam) {
+      const own = cands.filter(m => m.cell === fam);
+      if (own.length) cands = own;
+      else { const sh = cands.filter(m => m.cell === 0); if (sh.length) cands = sh; }
+    }
+    let best = null, bv = Infinity;
+    cands.forEach(m => { const mv = moveTime(from, m); const v = estFree(m, now + mv.t) + mv.t * 0.01; if (v < bv) { bv = v; best = m; } });
+    return best;
+  }
+  function send(b, now) {
+    const from = b.at;
+    if (b.op >= b.part.route.length) {
+      const mv = moveTime(from, DISPATCH); if (inW(now)) { travel += mv.d; totalMoves++; if (mv.fork) forkMoves++; }
+      moves.push({ b: b.id, p: b.part.id, f: b.part.fam, x0: from.x, y0: from.y, x1: DISPATCH.x, y1: DISPATCH.y, t0: now, t1: now + mv.t });
+      push(now + mv.t, t => { wipAt(t); wipUnits -= b.qty; b.done = t; });
+      return;
+    }
+    const m = choose(b, b.part.route[b.op][0], from, now);
+    dispatchTo(b, m, now, 0);
+  }
+  function dispatchTo(b, m, now, minEnd) {
+    const from = b.at; const [type, ut] = b.part.route[b.op];
+    const mv = moveTime(from, m); if (inW(now)) { travel += mv.d; totalMoves++; if (mv.fork) forkMoves++; }
+    if (b.prevCell !== null && b.prevCell !== undefined && !b.prevFixed && !TYPES[m.type].fixed && m.cell !== b.prevCell && inW(now)) interCell++;
+    moves.push({ b: b.id, p: b.part.id, f: b.part.fam, x0: from.x, y0: from.y, x1: m.x, y1: m.y, t0: now, t1: now + mv.t });
+    const est = (TYPES[type].cycle || (TYPES[type].setup * 0.6 + b.qty * ut / (TYPES[type].avail || 1)));
+    const item = { b, ut, est, minEnd, arriving: true };
+    m.queue.push(item);
+    push(now + mv.t, t => { item.arriving = false; item.arr = t; qlog.push([t, m.id, m.queue.filter(x => !x.arriving).length]); tryStart(m, t); });
+  }
+  function tryStart(m, t) {
+    if (m.busy >= m.slots) return;
+    const dn = down.find(d => d.type === m.type && t >= d.from && t < d.to);
+    if (dn) { if (!m.waitDown) { m.waitDown = true; push(dn.to, t2 => { m.waitDown = false; tryStart(m, t2); }); } return; }
+    const idx = m.queue.findIndex(x => !x.arriving);
+    if (idx < 0) return;
+    const item = m.queue.splice(idx, 1)[0]; const b = item.b;
+    const T = TYPES[m.type];
+    const su = setupOf(m, b.part);
+    let run = b.qty * item.ut / (T.avail || 1);
+    if (vary && !T.cycle) run *= tri(0.85, 1, 1.4);
+    let pt = T.cycle ? T.cycle : su + run;
+    if (vary && !T.cycle && rng() < 1 - Math.exp(-pt / 2400)) { pt += -Math.log(1 - rng()) * 120; if (inW(t)) breakdowns++; }
+    if (!T.cycle && item.minEnd) pt = Math.max(pt, item.minEnd + item.ut / (T.avail || 1) - t);   // cannot finish before upstream finishes
+    m.busy++; m.busyUntil = Math.max(m.busyUntil, t + pt / m.slots);
+    const work = T.cycle ? pt : su + run;
+    const ov = (a, b) => Math.max(0, Math.min(b, HORIZON) - Math.max(a, WARM)); m.busyTime += ov(t, t + work) / m.slots; m.setupTime += ov(t, t + su);
+    m.lastPart = b.part.id; m.lastFam = b.part.fam;
+    qlog.push([t, m.id, m.queue.filter(x => !x.arriving).length]);
+    busyLog.push([t, t + pt, m.id, b.part.fam]);
+    // one-piece flow inside a cell: pass the first part on as soon as it is finished
+    let early = false;
+    if (flow && !T.cycle && m.cell > 0 && b.op + 1 < b.part.route.length) {
+      const nType = b.part.route[b.op + 1][0];
+      if (!TYPES[nType].cycle) {
+        const here = { x: m.x, y: m.y };
+        const cand = choose(b, nType, here, t);
+        if (cand && cand.cell === m.cell && cand !== m && moveTime(here, cand).d <= HAND_DIST) {
+          early = true; if (inW(t)) flowOps++;
+          const tFirst = t + su + item.ut / (T.avail || 1), tEnd = t + pt;
+          push(tFirst, () => { b.at = here; b.prevCell = m.cell; b.prevFixed = false; b.op++; dispatchTo(b, cand, tFirst, tEnd); });
+        }
+      }
+    }
+    push(t + pt, t2 => {
+      m.busy--; m.qtyDone += b.qty;
+      if (!early) { b.at = { x: m.x, y: m.y }; b.prevCell = m.cell; b.prevFixed = !!T.fixed; b.op++; send(b, t2); }
+      tryStart(m, t2);
+    });
+  }
+  // releases
+  PARTS.forEach((p, pi) => {
+    const dem = demandOf(p);
+    const qty = Math.max(1, Math.ceil(dem * batchDays / 5));
+    const interval = qty / dem * WEEK;
+    let t = ((pi * 0.137) % 1) * Math.min(interval, DAY);
+    for (; t < HORIZON; t += interval) {
+      const b = { id: batches.length, part: p, qty, rel: t, op: 0, at: STORES, prevCell: null };
+      batches.push(b);
+      let delay = 0;
+      if (late && rng() < late.prob) { const wl = inW(t); if (wl) lateCount++; delay = (late.min + rng() * (late.max - late.min)) * DAY; delay = Math.max(0, delay - bufferDays * DAY); if (delay > 0 && wl) lateHit++; }
+      push(t + delay, tt => { b.start = tt; wipAt(tt); wipUnits += b.qty; send(b, tt); });
+    }
+  });
+  let guard = 0, endT = 0;
+  while (H.length && guard++ < 2e6) { const e = pop(); endT = e.t; e.fn(e.t); }
+  wipAt(HORIZON);
+
+  const measured = batches.filter(b => b.rel >= WARM && b.done !== undefined);
+  const lt = measured.map(b => (b.done - b.rel) / DAY).sort((a, b) => a - b);
+  const avg = lt.reduce((a, b) => a + b, 0) / Math.max(1, lt.length);
+  const p90 = lt[Math.floor(lt.length * 0.9)] || 0;
+  const util = machines.map(m => ({ id: m.id, type: m.type, cell: m.cell, x: m.x, y: m.y, util: m.busyTime / (HORIZON - WARM), setup: m.setupTime / (HORIZON - WARM) }));
+  const lateFinish = Math.max(0, (endT - HORIZON) / DAY);
+  const unitsDemand = PARTS.reduce((s, p) => s + p.demand, 0);
+  return {
+    avgLT: avg, p90LT: p90,
+    wip: wipArea / (HORIZON - WARM),
+    travelPerWeek: travel / WEEKS / 1000,
+    interCellPerWeek: interCell / WEEKS,
+    movesPerWeek: totalMoves / WEEKS, forkPerWeek: forkMoves / WEEKS, flowOpsPerWeek: flowOps / WEEKS,
+    setupHrsPerWeek: machines.reduce((s, m) => s + m.setupTime, 0) / 60 / WEEKS,
+    util, breakdowns: breakdowns / WEEKS, lateDeliveries: lateCount / WEEKS, lateHits: lateHit / WEEKS, bufferStock: PARTS.reduce((a, p) => a + demandOf(p) * bufferDays / 5, 0), lateFinish, endT, unitsDemand,
+    trace: opts.trace ? { batches: batches.map(b => [b.rel, b.start, b.done, b.qty]), moves, qlog, busyLog, machines: machines.map(m => ({ id: m.id, type: m.type, x: m.x, y: m.y, cell: m.cell })) } : null
+  };
+}
+if (typeof module !== 'undefined' && module.exports) module.exports = { TYPES, PARTS, BASELINE, simulate, TYPE_ORDER, FIXED_POS, GRID_W, GRID_H, WEEK, DAY, HORIZON, WARM };
+
+// ===== User interface =====
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => Number(n).toLocaleString('en-GB', { minimumFractionDigits: d, maximumFractionDigits: d });
+const money = n => '£' + fmt(n);
+const FAMCOL = ['#9AA6B2', '#3B82C4', '#3A9A5B', '#D9822B', '#8A5CC2'];
+const TAGNAME = ['Shared', 'Cell 1', 'Cell 2', 'Cell 3', 'Cell 4'];
+const RELOCATE = 5000, BUDGET = 300000;
+
+// ---------- state ----------
+let S = { layout: [], bought: {}, assign: {}, history: [] };
+function baseLayout() { return BASELINE.map(([type, x, y]) => ({ type, x, y, cell: 0 })); }
+function save() { try { localStorage.setItem('breezeway-v1', JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try { const s = JSON.parse(localStorage.getItem('breezeway-v1')); if (s && s.layout) { S = Object.assign(S, s); return; } } catch (e) {}
+  S.layout = baseLayout();
+}
+load();
+const owned = t => TYPES[t].have + (S.bought[t] || 0);
+const placed = t => S.layout.filter(m => m.type === t).length;
+
+// tabs
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('section.tab').forEach(s => s.classList.toggle('active', s.id === b.dataset.tab));
+  if (b.dataset.tab === 'fam') renderFam();
+  if (b.dataset.tab === 'floor') renderFloor();
+  if (b.dataset.tab === 'run') { renderPlayFloor(); drawFrame(); }
+});
+
+// ---------- brief ----------
+(function () {
+  let h = '<tr><th>#</th><th>Model</th><th>Market</th><th>Demand / month</th><th>Routing (machine: cycle time, min per unit)</th></tr>';
+  PARTS.forEach(p => { h += `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.mat}</td><td>${p.monthly}</td><td>${p.route.map(r => `${r[0]} ${r[1]}`).join(' → ')}</td></tr>`; });
+  $('partsTable').innerHTML = h;
+  h = '<tr><th>Code</th><th>Machine</th><th>Owned now</th><th>Changeover (min)</th><th>Availability</th><th>Price to buy</th><th>Notes</th></tr>';
+  TYPE_ORDER.forEach(t => { const T = TYPES[t]; h += `<tr><td><b>${t}</b></td><td>${T.name}</td><td>${T.have}</td><td>${T.setup}</td><td>${Math.round(T.avail * 100)}%</td><td>${T.cost ? money(T.cost) : '–'}</td><td>${T.fixed ? 'Fixed in place (heavy foundations); shared by all cells' : ''}</td></tr>`; });
+  $('typesTable').innerHTML = h;
+})();
+
+// ---------- families ----------
+let rowOrder = PARTS.slice().sort((a, b) => b.monthly - a.monthly).map(p => p.id), colOrder = TYPE_ORDER.slice();
+const usesType = (p, t) => p.route.some(r => r[0] === t);
+function boa() {
+  let rows = PARTS.map(p => p.id), cols = TYPE_ORDER.slice();
+  const P = id => PARTS.find(p => p.id === id);
+  for (let it = 0; it < 20; it++) {
+    const n = cols.length, rw = {};
+    rows.forEach(r => rw[r] = cols.reduce((s, c, j) => s + (usesType(P(r), c) ? 2 ** (n - 1 - j) : 0), 0));
+    const nr = rows.slice().sort((a, b) => rw[b] - rw[a] || rows.indexOf(a) - rows.indexOf(b));
+    const m = nr.length, cw = {};
+    cols.forEach(c => cw[c] = nr.reduce((s, r, i) => s + (usesType(P(r), c) ? 2 ** (m - 1 - i) : 0), 0));
+    const nc = cols.slice().sort((a, b) => cw[b] - cw[a] || cols.indexOf(a) - cols.indexOf(b));
+    const same = nr.join() === rows.join() && nc.join() === cols.join();
+    rows = nr; cols = nc; if (same) break;
+  }
+  rowOrder = rows; colOrder = cols;
+}
+function renderFam() {
+  let h = '<tr><th style="text-align:left">Model</th><th>Demand / month</th><th>Family</th>' + colOrder.map(c => `<th title="${TYPES[c].name}">${c}</th>`).join('') + '</tr>';
+  rowOrder.forEach(id => {
+    const p = PARTS.find(q => q.id === id); const f = S.assign[id] || 0;
+    h += `<tr class="${f ? 'f' + f : ''}"><td class="name">${p.id}. ${p.name}</td><td>${p.monthly}</td><td><select data-p="${id}"><option value="0">–</option>${[1, 2, 3, 4].map(k => `<option ${f === k ? 'selected' : ''}>${k}</option>`).join('')}</select></td>`;
+    colOrder.forEach(c => { const r = p.route.find(x => x[0] === c); h += `<td class="${r ? 'one' : ''}">${r ? (r[1] !== undefined ? r[1] : '✓') : ''}</td>`; });
+    h += '</tr>';
+  });
+  $('mx').innerHTML = h;
+  $('mx').querySelectorAll('select').forEach(s => s.onchange = () => { S.assign[s.dataset.p] = +s.value; save(); renderFam(); });
+  const un = PARTS.filter(p => !S.assign[p.id]).length;
+  const fams = [...new Set(Object.values(S.assign).filter(Boolean))].sort();
+  let msg = un ? `${un} model(s) still need a family. ` : '<b>All models assigned.</b> ';
+  if (fams.length) {
+    const shared = TYPE_ORDER.filter(t => fams.filter(f => PARTS.some(p => S.assign[p.id] === f && usesType(p, t))).length > 1);
+    msg += shared.length ? `Machine types needed by more than one family: <b>${shared.join(', ')}</b>. For each, decide: duplicate it, share it, or accept inter-cell moves.` : 'No machine type is shared between families.';
+  }
+  $('famFb').innerHTML = msg; $('famFb').className = 'fb ' + (un ? 'info' : 'good');
+  renderCap();
+  famButtons();
+}
+function famHours(f) {
+  const hrs = {};
+  PARTS.filter(p => S.assign[p.id] === f).forEach(p => p.route.forEach(([t, ut]) => {
+    const T = TYPES[t]; let h;
+    h = (p.demand * ut / (T.avail || 1) + 5 * T.setup * FAM_SETUP) / 60;
+    hrs[t] = (hrs[t] || 0) + h;
+  }));
+  return hrs;
+}
+function renderCap() {
+  const fams = [1, 2, 3, 4].filter(f => PARTS.some(p => S.assign[p.id] === f));
+  let h = '<tr><th>Family</th><th>Models</th>' + TYPE_ORDER.map(t => `<th>${t}</th>`).join('') + '</tr>';
+  const tot = {};
+  fams.forEach(f => {
+    const hr = famHours(f);
+    h += `<tr class="f${f}"><td>Family ${f}</td><td>${PARTS.filter(p => S.assign[p.id] === f).map(p => p.id).join(', ')}</td>` + TYPE_ORDER.map(t => { if (!hr[t]) return '<td></td>'; tot[t] = (tot[t] || 0) + hr[t]; const need = Math.ceil(hr[t] / 63.75); return `<td>${fmt(hr[t], 1)} h<br><span class="note">${TYPES[t].fixed ? 'shared' : need + ' m/c'}</span></td>`; }).join('') + '</tr>';
+  });
+  if (!fams.length) h += `<tr><td colspan="${TYPE_ORDER.length + 2}" class="note">Assign families to see the load on each machine type.</td></tr>`;
+  else h += '<tr><td><b>Owned</b></td><td></td>' + TYPE_ORDER.map(t => `<td><b>${owned(t)}</b>${tot[t] ? `<br><span class="note">${fmt(tot[t] / (owned(t) * 75) * 100)}% avg</span>` : ''}</td>`).join('') + '</tr>';
+  $('capTable').innerHTML = h;
+}
+let selBtn = 'origBtn';
+function famButtons() { ['boaBtn', 'origBtn', 'clearFam', 'hintFam'].forEach(id => $(id).className = id === selBtn ? 'btn' : 'btn alt'); }
+$('boaBtn').onclick = () => { boa(); selBtn = 'boaBtn'; renderFam(); };
+$('origBtn').onclick = () => { rowOrder = PARTS.slice().sort((a, b) => b.monthly - a.monthly).map(p => p.id); colOrder = TYPE_ORDER.slice(); selBtn = 'origBtn'; renderFam(); };
+$('clearFam').onclick = () => { S.assign = {}; selBtn = 'clearFam'; save(); renderFam(); };
+$('hintFam').onclick = () => {
+  PARTS.forEach(p => S.assign[p.id] = { D: 1, I: 2 }[p.fam]); save(); boa(); selBtn = 'hintFam'; renderFam();
+  $('famFb').innerHTML += '<br><b>One possible grouping:</b> Family 1 domestic fans (1, 2); Family 2 industrial fans (3, 4), which also need the balancer. The alternative is a single family (all four models in one mixed-model line). Check the capacity table below before deciding.';
+};
+
+// ---------- floor ----------
+let tool = 'move', palType = null, selIdx = -1;
+function renderTools() {
+  const t = [['move', 'Select / move'], ['remove', 'Remove']].map(([k, n]) => `<button class="tool ${tool === k ? 'active' : ''}" data-t="${k}">${n}</button>`).join('') +
+    [0, 1, 2, 3, 4].map(k => `<button class="tool ${tool === 'tag' + k ? 'active' : ''}" data-t="tag${k}"><span class="sw" style="background:${k ? 'var(--t' + k + ')' : '#fff'}"></span>Tag: ${TAGNAME[k]}</button>`).join('');
+  $('tools').innerHTML = t;
+  $('tools').querySelectorAll('.tool').forEach(b => b.onclick = () => { tool = b.dataset.t; palType = null; renderFloor(); });
+}
+function renderPalette() {
+  let h = '';
+  TYPE_ORDER.forEach(t => {
+    const T = TYPES[t];
+    h += `<div class="pal ${palType === t && tool === 'place' ? 'active' : ''}" data-t="${t}"><span class="code">${t}</span><span>${T.short}</span><span class="cnt">${placed(t)} / ${owned(t)} placed</span>` +
+      (T.fixed ? '' : `<button class="btn small alt" data-buy="${t}" title="Buy for ${money(T.cost)}">+</button>${(S.bought[t] || 0) > 0 ? `<button class="btn small alt" data-sell="${t}" title="Cancel purchase">−</button>` : ''}`) + '</div>';
+  });
+  $('palette').innerHTML = h;
+  $('palette').querySelectorAll('.pal').forEach(p => p.onclick = e => {
+    if (e.target.dataset.buy) { S.bought[e.target.dataset.buy] = (S.bought[e.target.dataset.buy] || 0) + 1; save(); renderFloor(); return; }
+    if (e.target.dataset.sell) { const t = e.target.dataset.sell; if (placed(t) >= owned(t)) { msg(`Remove a ${TYPES[t].short} from the floor first.`, 'poor'); return; } S.bought[t]--; save(); renderFloor(); return; }
+    const t = p.dataset.t; if (TYPES[t].fixed) { msg('The press is fixed in place (heavy foundations).', 'info'); return; }
+    tool = 'place'; palType = t; renderFloor();
+    msg(placed(t) < owned(t) ? `Click an empty tile to place a ${TYPES[t].short}.` : `All your ${TYPES[t].short}s are placed. Buy another (+) or remove one first.`, 'info');
+  });
+}
+function capexCalc() {
+  let buy = 0, moved = 0;
+  TYPE_ORDER.forEach(t => {
+    buy += (S.bought[t] || 0) * (TYPES[t].cost || 0);
+    if (TYPES[t].fixed) return;
+    const basePos = BASELINE.filter(b => b[0] === t).map(b => b[1] + ',' + b[2]);
+    const ms = S.layout.filter(m => m.type === t);
+    const stay = ms.filter(m => basePos.includes(m.x + ',' + m.y)).length;
+    moved += Math.max(0, Math.min(ms.length, TYPES[t].have) - stay);
+  });
+  return { buy, moved, total: buy + moved * RELOCATE };
+}
+function msg(t, k) { $('floorFb').innerHTML = t; $('floorFb').className = 'fb ' + k; }
+function machineHTML(m, i, extra = '') {
+  const T = TYPES[m.type];
+  return `<div class="mach ${T.fixed ? 'fixed' : ''} ${m.cell ? 'c' + m.cell : ''} ${extra}" data-i="${i}"><b>${m.type}</b><small>${T.short}</small><span class="badge"></span></div>`;
+}
+
+function setupWarnings() {
+  const w = [];
+  const movable = S.layout.filter(m => !TYPES[m.type].fixed);
+  const tagged = movable.filter(m => m.cell > 0);
+  const fams = [...new Set(PARTS.map(p => S.assign[p.id] || 0).filter(Boolean))].sort();
+  const cellSet = [...new Set(tagged.map(m => m.cell))];
+  if (!fams.length && cellSet.length > 1) w.push('Machines are tagged to several cells, but no models are assigned to families (tab 2), so every model can use any cell’s machines.');
+  if (fams.length && !tagged.length) w.push('Models are assigned to families, but no machines are tagged to a cell (tab 3). Everything runs as shared machines, with no one-piece flow.');
+  if (tagged.length) fams.forEach(f => { if (!movable.some(m => m.cell === f)) w.push(`Family ${f} has no machines tagged Cell ${f}, so its models use shared machines (no one-piece flow).`); });
+  const unassigned = PARTS.filter(p => !S.assign[p.id]);
+  if (fams.length && unassigned.length) w.push(`${unassigned.map(p => p.name).join(', ')} ${unassigned.length > 1 ? 'have' : 'has'} no family.`);
+  return w;
+}
+function renderTagInfo() {
+  const movable = S.layout.filter(m => !TYPES[m.type].fixed), tagged = movable.filter(m => m.cell > 0);
+  const fams = [...new Set(PARTS.map(p => S.assign[p.id] || 0).filter(Boolean))].sort();
+  const cells = [...new Set(tagged.map(m => m.cell))].sort();
+  const w = setupWarnings();
+  $('tagInfo').className = 'fb ' + (w.length ? 'poor' : 'good');
+  $('tagInfo').innerHTML = `<b>${tagged.length} of ${movable.length}</b> machines tagged to a cell (the press stays shared).<br>Families in use (tab 2): <b>${fams.length ? fams.join(', ') : 'none'}</b> · Cells with machines: <b>${cells.length ? cells.join(', ') : 'none'}</b>` + (w.length ? '<br>⚠ ' + w.join('<br>⚠ ') : '<br>✔ Families and cells match.');
+}
+function renderFloor() {
+  renderTools(); renderPalette();
+  const g = $('floorGrid'); let h = '';
+  for (let y = 0; y < GRID_H; y++) for (let x = 0; x < GRID_W; x++) {
+    const i = S.layout.findIndex(m => m.x === x && m.y === y);
+    h += `<div class="tilec ${tool === 'place' && i < 0 ? 'target' : ''}" data-x="${x}" data-y="${y}">${i >= 0 ? machineHTML(S.layout[i], i, i === selIdx ? 'sel' : '') : ''}</div>`;
+  }
+  g.innerHTML = h;
+  const c = capexCalc();
+  $('capex').textContent = money(c.total); $('capex').className = c.total > BUDGET ? 'up' : '';
+  $('moved').textContent = c.moved;
+  $('removeSel').disabled = selIdx < 0 || !S.layout[selIdx] || TYPES[S.layout[selIdx].type].fixed;
+  g.querySelectorAll('.tilec').forEach(tile => tile.onclick = e => {
+    if (e.target.closest('.mach')) return;
+    if (tool === 'place' && palType) {
+      if (placed(palType) >= owned(palType)) { msg(`No spare ${TYPES[palType].short}. Buy one (+) first.`, 'poor'); return; }
+      S.layout.push({ type: palType, x: +tile.dataset.x, y: +tile.dataset.y, cell: 0 }); save(); renderFloor();
+    } else { selIdx = -1; renderFloor(); }
+  });
+  g.querySelectorAll('.mach').forEach(el => {
+    const i = +el.dataset.i, m = S.layout[i];
+    el.onpointerdown = e => {
+      if (tool.startsWith('tag')) { m.cell = TYPES[m.type].fixed ? 0 : +tool.slice(3); if (TYPES[m.type].fixed) msg('The press stays shared.', 'info'); save(); renderFloor(); return; }
+      if (tool === 'remove') { if (TYPES[m.type].fixed) { msg('The press is fixed in place and cannot be removed.', 'poor'); return; } S.layout.splice(i, 1); selIdx = -1; save(); renderFloor(); return; }
+      selIdx = i;
+      if (TYPES[m.type].fixed) { renderFloor(); msg(`${TYPES[m.type].name}: fixed in place (shared by all cells).`, 'info'); return; }
+      startDrag(e, el, i);
+    };
+  });
+  renderTagInfo();
+}
+function startDrag(e, el, i) {
+  e.preventDefault();
+  const g = $('floorGrid'); let target = null; let movedPx = 0; const sx = e.clientX, sy = e.clientY;
+  el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing'; el.classList.add('sel');
+  el.onpointermove = ev => {
+    movedPx = Math.max(movedPx, Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy));
+    el.style.transform = `translate(${ev.clientX - sx}px,${ev.clientY - sy}px)`; el.style.zIndex = 5;
+    el.style.pointerEvents = 'none'; const under = document.elementFromPoint(ev.clientX, ev.clientY); el.style.pointerEvents = '';
+    const tile = under && under.closest && under.closest('#floorGrid .tilec');
+    g.querySelectorAll('.tilec.target').forEach(t => t.classList.remove('target'));
+    target = null;
+    if (tile && !tile.querySelector('.mach')) { tile.classList.add('target'); target = tile; }
+  };
+  el.onpointerup = () => {
+    el.onpointermove = null; el.onpointerup = null;
+    if (target && movedPx > 5) { S.layout[i].x = +target.dataset.x; S.layout[i].y = +target.dataset.y; save(); }
+    renderFloor();
+    const m = S.layout[i]; if (m) msg(`${TYPES[m.type].name} at (${m.x}, ${m.y}) · ${TAGNAME[m.cell]}`, 'info');
+  };
+}
+$('removeSel').onclick = () => { if (selIdx >= 0 && !TYPES[S.layout[selIdx].type].fixed) { S.layout.splice(selIdx, 1); selIdx = -1; save(); renderFloor(); } };
+$('loadBase').onclick = () => { S.layout = baseLayout(); S.bought = {}; selIdx = -1; save(); renderFloor(); msg('Current factory loaded (process layout, all machines shared).', 'info'); };
+$('clearFloor').onclick = () => { S.layout = S.layout.filter(m => TYPES[m.type].fixed); selIdx = -1; save(); renderFloor(); msg('Floor cleared. Choose a machine type on the right and place it.', 'info'); };
+function floorBtn(id) { ['loadBase', 'clearFloor', 'removeSel'].forEach(b => $(b).classList.toggle('alt', b !== id)); }
+['loadBase', 'clearFloor', 'removeSel'].forEach(id => $(id).addEventListener('click', () => floorBtn(id)));
+
+// ---------- simulation ----------
+function disruptOpts() {
+  const o = {};
+  if ($('dSurge').checked) o.demandMult = () => 1.15;
+  if ($('dLate').checked) o.late = { prob: 0.2, min: 0.5, max: 2 };
+  if ($('dAnod').checked) o.down = [{ type: 'PR', from: WEEK + 2 * DAY, to: WEEK + 3 * DAY }];
+  if ($('dVary').checked) o.variability = true;
+  return o;
+}
+function disruptKey() { return ['dSurge', 'dLate', 'dAnod', 'dVary'].map(id => $(id).checked ? 1 : 0).join(''); }
+function disruptNames() { return [['dSurge', 'demand +15%'], ['dLate', 'late supplier deliveries'], ['dAnod', 'press breakdown'], ['dBudget', 'budget cut'], ['dVary', 'real-world variation']].filter(([id]) => $(id).checked).map(x => x[1]); }
+const budget = () => $('dBudget').checked ? 150000 : BUDGET;
+const baseCache = {};
+function baseFor() { const k = disruptKey(); if (!baseCache[k]) baseCache[k] = simulate(baseLayout(), {}, 5, Object.assign({ trace: true }, disruptOpts())); return baseCache[k]; }
+const BASE0 = baseCache['0000'] = simulate(baseLayout(), {}, 5, { trace: true });
+let BASE = baseFor();
+let LAST = null, LASTMETA = null, PENDING = null;
+const TARGETS = [
+  ['Average lead time ≤ 1.5 days', r => r.avgLT <= 1.5],
+  ['Average WIP ≤ 200 fans', r => r.wip <= 200],
+  ['Forklift moves ≤ 60 / week', r => r.forkPerWeek <= 60],
+  ['Busiest machine ≤ 90% utilised', r => Math.max(...r.util.map(u => u.util)) <= 0.90],
+  ['Capital spend within budget', (r, c) => c <= budget()]
+];
+function kpiBox(label, v, b, unit, dec, lowerBetter = true) {
+  const d = b ? (v - b) / b * 100 : 0;
+  const cls = Math.abs(d) < 0.5 ? '' : ((d < 0) === lowerBetter ? 'down' : 'up');
+  return `<div class="kpi"><b>${fmt(v, dec)}${unit}</b><span>${label}</span><br><em class="${cls}">${d > 0 ? '+' : ''}${fmt(d, 0)}% vs current factory (${fmt(b, dec)}${unit})</em></div>`;
+}
+$('runBtn').onclick = () => {
+  const bd = +$('batchSel').value;
+  BASE = baseFor();
+  const r = simulate(S.layout, S.assign, bd, Object.assign({ trace: true, flow: $('flowChk').checked, bufferDays: $('cBuffer').checked ? 1 : 0 }, disruptOpts()));
+  if (r.error) { $('runMsg').innerHTML = '<b>Cannot run:</b> ' + r.error + ' Every machine type in the routings must be on the floor.'; $('runMsg').className = 'fb poor'; return; }
+  const cap = capexCalc().total;
+  LAST = r; LASTMETA = { bd, cap };
+  const warns = setupWarnings(); let note = warns.length ? ' <b>Check your setup:</b> ' + warns.join(' ') : '';
+  const maxU = Math.max(...r.util.map(u => u.util));
+  const dn = disruptNames(); if ($('cBuffer').checked) dn.push('countermeasure: 1-day raw-material buffer');
+  $('runMsg').innerHTML = `Round ${S.round || 1} run complete: ${$('batchSel').selectedOptions[0].text} batches, one-piece flow ${$('flowChk').checked ? 'on' : 'off'}${dn.length ? '. <b>Disruptions:</b> ' + dn.join(', ') : ''}.` + note + (maxU > 0.9 ? ` <b class="up">Warning:</b> a machine is ${fmt(maxU * 100)}% utilised, so queues will keep growing in a longer run.` : '');
+  $('runMsg').className = 'fb ' + (note || maxU > 0.9 ? 'info' : 'good');
+  const finalMsg = $('runMsg').innerHTML, finalCls = $('runMsg').className;
+  $('runMsg').className = 'fb info';
+  $('runMsg').innerHTML = `<b>Round ${S.round || 1} running…</b> Watch the month play out below; the full results appear at the end. Press <b>Skip to results</b> to jump ahead.`;
+  $('kpis').innerHTML = ''; $('scorecard').innerHTML = ''; $('utilBars').innerHTML = ''; $('utilSummary').innerHTML = ''; $('finalHead').style.display = 'none'; $('pitchBtn').disabled = true;
+  PENDING = () => {
+    $('runMsg').innerHTML = finalMsg; $('runMsg').className = finalCls; $('finalHead').style.display = 'block';
+    $('kpis').innerHTML = kpiBox('average lead time (working days)', r.avgLT, BASE.avgLT, ' d', 2) + kpiBox('90th percentile lead time', r.p90LT, BASE.p90LT, ' d', 2) +
+      kpiBox('average WIP (fans)', r.wip, BASE.wip, '', 0) + kpiBox('forklift moves / week', r.forkPerWeek, BASE.forkPerWeek, '', 0) +
+      kpiBox('travel distance / week', r.travelPerWeek, BASE.travelPerWeek, ' km', 1) + kpiBox('setup hours / week', r.setupHrsPerWeek, BASE.setupHrsPerWeek, ' h', 0) +
+      (r.lateDeliveries ? `<div class="kpi"><b>${fmt(r.lateHits, 1)} / ${fmt(r.lateDeliveries, 1)}</b><span>late deliveries per week that delayed production / all late deliveries</span></div>` : '') +
+      (r.bufferStock ? `<div class="kpi"><b>${fmt(r.bufferStock)}</b><span>fan kits held in the raw-material buffer (extra inventory)</span></div>` : '') +
+      `<div class="kpi"><b>${fmt(r.interCellPerWeek, 0)}</b><span>moves between cells or to shared machines / week</span></div><div class="kpi"><b>${money(cap)}</b><span>capital spend</span></div>`;
+    const passed = TARGETS.filter(([, f]) => f(r, cap)).length;
+    $('scorecard').innerHTML = (warns.length ? `<div class="fb poor" style="margin-bottom:10px"><b>⚠ Check your setup before trusting these results:</b><br>${warns.join('<br>')}</div>` : '') + `<h3>Scorecard: ${passed} / ${TARGETS.length} targets met</h3>` + TARGETS.map(([n, f]) => `<div class="check ${f(r, cap) ? 'down' : 'up'}">${f(r, cap) ? '✔' : '✘'} ${n}</div>`).join('');
+    renderUtil(r);
+    S.history.push({ name: $('runName').value || `Run ${S.history.length + 1}`, round: S.round || 1, dis: dn.join('; '), base: { lt: BASE.avgLT, wip: BASE.wip }, batch: bd, flow: $('flowChk').checked, lt: r.avgLT, p90: r.p90LT, wip: r.wip, fork: r.forkPerWeek, setup: r.setupHrsPerWeek, inter: r.interCellPerWeek, maxU, cap, met: passed });
+    $('runName').value = ''; save(); renderHistory();
+    LASTMETA.passed = passed; LASTMETA.dn = dn; LASTMETA.base = BASE; LASTMETA.maxU = maxU;
+    $('pitchBtn').disabled = false;
+  };
+  startPlayback(r, true);
+};
+$('teamName').value = S.team || '';
+$('teamName').oninput = () => { S.team = $('teamName').value; save(); };
+$('pitchBtn').onclick = () => {
+  if (!LAST) return;
+  const r = LAST, B = LASTMETA.base, cap = LASTMETA.cap;
+  const pct = (v, b) => { const d = (v - b) / b * 100; return `<em class="${d < 0 ? 'down' : 'up'}" style="font-style:normal">${d > 0 ? '+' : ''}${fmt(d)}%</em>`; };
+  const cells = [1, 2, 3, 4].map(c => { const ms = S.layout.filter(m => m.cell === c); const ps = PARTS.filter(p => S.assign[p.id] === c); return ms.length || ps.length ? `<li><b>Cell ${c}:</b> ${ms.map(m => m.type).join(', ') || 'no machines'} · models ${ps.map(p => p.id).join(', ') || 'none'}</li>` : ''; }).join('');
+  const shared = S.layout.filter(m => !m.cell).map(m => m.type);
+  const bought = TYPE_ORDER.filter(t => S.bought[t]).map(t => `${S.bought[t]} × ${TYPES[t].short}`).join(', ') || 'none';
+  const fl = $('floorGrid').cloneNode(true); fl.removeAttribute('id'); fl.querySelectorAll('.sel').forEach(e => e.classList.remove('sel'));
+  $('pitchBody').innerHTML = `<h2 style="font-size:28px">${(S.team || 'Our team').replace(/</g, '&lt;')}: focused factory proposal</h2>
+    <p class="note">${$('batchSel').selectedOptions[0].text} batches · one-piece flow ${$('flowChk').checked ? 'on' : 'off'}${LASTMETA.dn.length ? ' · disruptions: ' + LASTMETA.dn.join(', ') : ''}</p>
+    <div class="pk"><div><b>${fmt(r.avgLT, 2)} d</b><span>lead time ${pct(r.avgLT, B.avgLT)} vs ${fmt(B.avgLT, 2)} d today</span></div>
+    <div><b>${fmt(r.wip)}</b><span>fans in WIP ${pct(r.wip, B.wip)} vs ${fmt(B.wip)} today</span></div>
+    <div><b>${fmt(r.forkPerWeek)}</b><span>forklift moves / week (today ${fmt(B.forkPerWeek)})</span></div>
+    <div><b>${money(cap)}</b><span>capital spend (budget ${money(budget())})</span></div></div>
+    <div class="row"><div class="grow"><h3>Our design</h3><ul>${cells || '<li>No cells defined</li>'}<li><b>Shared:</b> ${shared.join(', ') || 'none'}</li><li><b>Bought:</b> ${bought}</li></ul>
+    <h3>Targets met: ${LASTMETA.passed} / ${TARGETS.length}</h3>${TARGETS.map(([n, f]) => `<div class="check ${f(r, cap) ? 'down' : 'up'}">${f(r, cap) ? '✔' : '✘'} ${n}</div>`).join('')}
+    <p class="note">Busiest machine: ${fmt(LASTMETA.maxU * 100)}% utilised</p></div>
+    <div class="grow"><h3>Layout</h3><div class="floorbox"><div class="dock">STORES</div><div class="floorwrap"></div><div class="dock r">DISPATCH</div></div></div></div>`;
+  $('pitchBody').querySelector('.floorwrap').appendChild(fl);
+  $('pitch').style.display = 'block';
+};
+$('pitchClose').onclick = () => { $('pitch').style.display = 'none'; };
+function renderUtil(r) {
+  const g = {}; r.util.forEach(x => (g[x.type] = g[x.type] || []).push(x));
+  let t = '<tr><th>Machine type</th><th>Units</th><th>Average: processing only</th><th>Average: including changeovers</th><th>Busiest unit</th></tr>';
+  TYPE_ORDER.filter(k => g[k]).forEach(k => { const a = g[k], n = a.length; const run = a.reduce((s, x) => s + x.util - x.setup, 0) / n, all = a.reduce((s, x) => s + x.util, 0) / n, mx = Math.max(...a.map(x => x.util));
+    t += `<tr><td>${k} ${TYPES[k].short}</td><td>${n}</td><td>${fmt(run * 100)}%</td><td>${fmt(all * 100)}%</td><td class="${mx > 0.9 ? 'up' : ''}">${fmt(mx * 100)}%</td></tr>`; });
+  $('utilSummary').innerHTML = t;
+  const rows = r.util.slice().sort((a, b) => b.util - a.util);
+  $('utilBars').innerHTML = rows.map(u => `<div class="row" style="align-items:center;gap:8px;margin:3px 0"><span style="width:190px;font-size:13px">${u.type} ${TYPES[u.type].short} <span class="note">(${u.cell ? 'Cell ' + u.cell : 'shared'})</span></span><div class="bar" style="flex:1"><i style="width:${Math.min(100, u.util * 100)}%"></i><u style="left:${Math.max(0, (u.util - u.setup) * 100)}%;width:${u.setup * 100}%"></u></div><span style="width:44px;text-align:right;font-size:13px" class="${u.util > 0.9 ? 'up' : ''}">${fmt(u.util * 100)}%</span></div>`).join('');
+}
+function renderHistory() {
+  let h = '<tr><th>Run</th><th>Round</th><th>Disruptions</th><th>Batch (days)</th><th>Flow</th><th>Lead time (d)</th><th>p90 (d)</th><th>WIP</th><th>Forklift / wk</th><th>Setup h / wk</th><th>Inter-cell / wk</th><th>Max util.</th><th>Capex</th><th>Targets</th></tr>';
+  h += `<tr class="note"><td>Current factory</td><td>–</td><td>none</td><td>5</td><td>–</td><td>${fmt(BASE0.avgLT, 2)}</td><td>${fmt(BASE0.p90LT, 2)}</td><td>${fmt(BASE0.wip)}</td><td>${fmt(BASE0.forkPerWeek)}</td><td>${fmt(BASE0.setupHrsPerWeek)}</td><td>0</td><td>${fmt(Math.max(...BASE0.util.map(u => u.util)) * 100)}%</td><td>£0</td><td></td></tr>`;
+  S.history.forEach(r => { h += `<tr><td>${r.name.replace(/</g, '&lt;')}</td><td>${r.round || 1}</td><td>${r.dis || 'none'}</td><td>${r.batch}</td><td>${r.flow ? 'on' : 'off'}</td><td>${fmt(r.lt, 2)}</td><td>${fmt(r.p90, 2)}</td><td>${fmt(r.wip)}</td><td>${fmt(r.fork)}</td><td>${fmt(r.setup)}</td><td>${fmt(r.inter)}</td><td>${fmt(r.maxU * 100)}%</td><td>${money(r.cap)}</td><td>${r.met}/5</td></tr>`; });
+  $('history').innerHTML = h;
+}
+$('csvBtn').onclick = () => {
+  const rows = [['team', 'run', 'round', 'disruptions', 'batch_days', 'one_piece_flow', 'avg_lead_time_days', 'p90_lead_time_days', 'avg_wip', 'forklift_moves_per_week', 'setup_hours_per_week', 'intercell_moves_per_week', 'max_utilisation', 'capex_gbp', 'targets_met']];
+  rows.push([S.team || '', 'Current factory', '', 'none', 5, '', BASE0.avgLT.toFixed(2), BASE0.p90LT.toFixed(2), BASE0.wip.toFixed(0), BASE0.forkPerWeek.toFixed(0), BASE0.setupHrsPerWeek.toFixed(0), 0, Math.max(...BASE0.util.map(u => u.util)).toFixed(2), 0, '']);
+  S.history.forEach(r => rows.push([S.team || '', r.name, r.round || 1, r.dis || 'none', r.batch, r.flow, r.lt.toFixed(2), r.p90.toFixed(2), r.wip.toFixed(0), r.fork.toFixed(0), r.setup.toFixed(0), r.inter.toFixed(0), r.maxU.toFixed(2), Math.round(r.cap), r.met]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'breezeway-results.csv'; a.click();
+};
+$('clearHist').onclick = () => { S.history = []; save(); renderHistory(); };
+
+// ---------- playback ----------
+let PB = null, playing = false, simT = WARM, lastFrame = 0;
+function renderPlayFloor() {
+  const tr = (PB && PB.trace) || BASE.trace; const g = $('floorGrid2'); let h = '';
+  for (let y = 0; y < GRID_H; y++) for (let x = 0; x < GRID_W; x++) {
+    const i = tr.machines.findIndex(m => m.x === x && m.y === y);
+    h += `<div class="tilec">${i >= 0 ? machineHTML(tr.machines[i], tr.machines[i].id) : ''}</div>`;
+  }
+  g.innerHTML = h;
+  $('famLegend').innerHTML = [1, 2, 3, 4].filter(f => Object.values(S.assign).includes(f)).map(f => `<span><i style="background:${FAMCOL[f]}"></i>Family ${f}</span>`).join('') + `<span><i style="background:${FAMCOL[0]}"></i>no family</span><span><i style="border:2px solid #555;background:#fff"></i>waiting for forklift</span>`;
+}
+function startPlayback(r, auto) {
+  const tr = r.trace;
+  const bs = tr.batches.filter(x => x[1] !== undefined);
+  const starts = bs.map(x => [x[1], x[3]]).sort((p, q) => p[0] - q[0]); let cs = 0; starts.forEach(x => { cs += x[1]; x[2] = cs; });
+  const dones = bs.filter(x => x[2] !== undefined).map(x => [x[2], x[3], (x[2] - x[0]) / DAY]).sort((p, q) => p[0] - q[0]); let cq = 0, cl = 0; dones.forEach((x, i) => { cq += x[1]; cl += x[2]; x[3] = cq; x[4] = cl; x[5] = i + 1; });
+  const forks = tr.moves.filter(m => (Math.abs(m.x1 - m.x0) + Math.abs(m.y1 - m.y0)) * TILE > HAND_DIST).map(m => [m.t0]).sort((p, q) => p[0] - q[0]);
+  const busy = {}; tr.busyLog.forEach(b => (busy[b[2]] = busy[b[2]] || []).push(b));
+  const q = {}; tr.qlog.forEach(e => (q[e[1]] = q[e[1]] || []).push(e));
+  Object.values(q).forEach(a => a.sort((x, y) => x[0] - y[0]));
+  const moves = tr.moves.slice().sort((a, b) => a.t0 - b.t0);
+  PB = { trace: tr, busy, q, moves, starts, dones, forks, assign: Object.assign({}, S.assign) };
+  simT = WARM; playing = false; $('playBtn').disabled = false; $('playBtn').textContent = '▶ Play';
+  renderPlayFloor(); drawFrame();
+  if (auto) { playing = true; $('playBtn').textContent = '❚❚ Pause'; $('skipBtn').style.display = ''; lastFrame = 0; requestAnimationFrame(tick); $('liveBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+function finishRun() { if (PENDING) { const f = PENDING; PENDING = null; f(); } $('skipBtn').style.display = 'none'; }
+function liveStats() {
+  if (!PB) return;
+  const k1 = lastBefore(PB.starts, simT), k2 = lastBefore(PB.dones, simT), k3 = lastBefore(PB.forks, simT);
+  const k2w = lastBefore(PB.dones, WARM), k3w = lastBefore(PB.forks, WARM);
+  const released = k1 >= 0 ? PB.starts[k1][2] : 0, doneAll = k2 >= 0 ? PB.dones[k2][3] : 0;
+  const done0 = k2w >= 0 ? PB.dones[k2w][3] : 0, done = doneAll - done0;
+  const nDone = (k2 >= 0 ? PB.dones[k2][5] : 0) - (k2w >= 0 ? PB.dones[k2w][5] : 0);
+  const avgLT = nDone > 0 ? ((k2 >= 0 ? PB.dones[k2][4] : 0) - (k2w >= 0 ? PB.dones[k2w][4] : 0)) / nDone : 0;
+  const busyN = $('floorGrid2').querySelectorAll('.mach.busy').length, total = $('floorGrid2').querySelectorAll('.mach').length;
+  const pct = Math.max(0, Math.round((simT - WARM) / (HORIZON - WARM) * 100));
+  $('liveKpis').innerHTML = `<div class="kpi"><b>${pct}%</b><span>of the month simulated</span><div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
+    <div class="kpi"><b>${fmt(done)}</b><span>fans dispatched this month</span></div>
+    <div class="kpi"><b>${fmt(released - doneAll)}</b><span>fans in work right now</span></div>
+    <div class="kpi"><b>${nDone > 0 ? fmt(avgLT, 2) + ' d' : '–'}</b><span>average lead time so far</span></div>
+    <div class="kpi"><b>${Math.max(0, k3 - k3w)}</b><span>forklift moves so far</span></div>
+    <div class="kpi"><b>${busyN} / ${total}</b><span>machines working now</span></div>`;
+}
+function lastBefore(a, t) { let lo = 0, hi = a.length - 1, r = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (a[m][0] <= t) { r = m; lo = m + 1; } else hi = m - 1; } return r; }
+function drawFrame() {
+  const cv = $('anim2'), wrap = $('floorwrap2'); if (!wrap.offsetWidth) return;
+  const W = wrap.offsetWidth, Hh = wrap.querySelector('.floor').offsetHeight; const dpr = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(Hh * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); cv.style.width = W + 'px'; cv.style.height = Hh + 'px'; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
+  $('timeSlider').value = simT;
+  const tm = Math.max(0, simT - WARM), wk = Math.floor(tm / WEEK) + 1, dy = Math.floor((tm % WEEK) / DAY) + 1, mins = 360 + Math.floor(tm % DAY);
+  $('clock').textContent = `Week ${Math.min(wk, 4)} · Day ${dy} · ${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  if (!PB) return;
+  const px = x => (Math.min(13.5, Math.max(-0.5, x)) + 0.5) / GRID_W * W, py = y => (Math.min(7.5, Math.max(-0.5, y)) + 0.5) / GRID_H * Hh;
+  // machines
+  $('floorGrid2').querySelectorAll('.mach').forEach(el => {
+    const id = +el.dataset.i; const bl = PB.busy[id] || []; let isBusy = false;
+    for (let k = lastBefore(bl, simT); k >= 0 && k > lastBefore(bl, simT) - 6; k--) if (bl[k][1] > simT) { isBusy = true; break; }
+    el.classList.toggle('busy', isBusy);
+    const ql = PB.q[id] || []; const k = lastBefore(ql, simT); const n = k >= 0 ? ql[k][2] : 0;
+    const b = el.querySelector('.badge'); b.style.display = n > 0 ? 'block' : 'none'; b.textContent = n;
+  });
+  // moves
+  const mv = PB.moves; let hi = mv.length - 1, lo = 0, idx = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (mv[m].t0 <= simT) { idx = m; lo = m + 1; } else hi = m - 1; }
+  for (let k = idx; k >= 0 && mv[k].t0 > simT - 300; k--) {
+    const m = mv[k]; if (m.t1 <= simT) continue;
+    const d = (Math.abs(m.x1 - m.x0) + Math.abs(m.y1 - m.y0)) * TILE; const dur = m.t1 - m.t0;
+    const travel = d <= HAND_DIST ? dur : Math.min(dur, d / 25 + 0.01);
+    const waitEnd = m.t1 - travel; let x, y, waiting = false;
+    if (simT < waitEnd) { x = m.x0; y = m.y0; waiting = true; }
+    else {
+      const f = (simT - waitEnd) / travel; const dx = Math.abs(m.x1 - m.x0), dyy = Math.abs(m.y1 - m.y0), tot = dx + dyy || 1; const s = f * tot;
+      if (s <= dx) { x = m.x0 + Math.sign(m.x1 - m.x0) * s; y = m.y0; } else { x = m.x1; y = m.y0 + Math.sign(m.y1 - m.y0) * (s - dx); }
+    }
+    const col = FAMCOL[PB.assign[m.p] || 0];
+    const jx = ((m.b * 7) % 5 - 2) * 3, jy = ((m.b * 11) % 5 - 2) * 3;
+    ctx.beginPath(); ctx.arc(px(x) + jx, py(y) + jy, 5, 0, 7);
+    if (waiting) { ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.stroke(); }
+    else { ctx.fillStyle = col; ctx.fill(); }
+  }
+  liveStats();
+}
+function tick(ts) {
+  if (!playing) return;
+  const dt = lastFrame ? (ts - lastFrame) / 1000 : 0; lastFrame = ts;
+  simT = Math.min(HORIZON, simT + dt * +$('speed').value);
+  drawFrame();
+  if (simT >= HORIZON) { playing = false; $('playBtn').textContent = '▶ Play'; finishRun(); return; }
+  requestAnimationFrame(tick);
+}
+$('playBtn').onclick = () => { playing = !playing; $('playBtn').textContent = playing ? '❚❚ Pause' : '▶ Play'; if (playing) { if (simT >= HORIZON) simT = WARM; lastFrame = 0; requestAnimationFrame(tick); } };
+$('timeSlider').max = HORIZON; $('timeSlider').min = WARM;
+$('timeSlider').oninput = () => { simT = +$('timeSlider').value; drawFrame(); if (simT >= HORIZON) finishRun(); };
+$('skipBtn').onclick = () => { playing = false; simT = HORIZON; $('playBtn').textContent = '▶ Play'; drawFrame(); finishRun(); };
+window.addEventListener('resize', drawFrame);
+
+
+// ---------- rounds ----------
+function setRound(n) {
+  S.round = n; save();
+  $('r1Btn').className = n === 1 ? 'btn' : 'btn alt';
+  $('r2Btn').className = n === 2 ? 'btn' : 'btn alt';
+  const boxes = ['dSurge', 'dLate', 'dAnod', 'dBudget', 'dVary', 'cBuffer'];
+  if (n === 1) { boxes.forEach(id => $(id).checked = false); $('disrupt').style.display = 'none'; }
+  else { $('dSurge').checked = true; $('dLate').checked = true; $('disrupt').style.display = 'block'; }
+  $('roundNote').innerHTML = n === 1
+    ? '<b>Round 1:</b> normal demand, reliable suppliers. Build your design, try different batch sizes, and name your best run “Round 1 final”.'
+    : '<b>Round 2:</b> demand rises 15% and 1 in 5 supplier deliveries is late. Re-run your Round 1 design first, then test countermeasures. Name your best run “Round 2 final”.';
+}
+$('r1Btn').onclick = () => setRound(1);
+$('r2Btn').onclick = () => setRound(2);
+setRound(S.round === 2 ? 2 : 1);
+
+// init
+renderFloor(); renderHistory(); renderPlayFloor();
+startPlayback(BASE);
+function baseMsg() { $('runMsg').className = 'fb info'; $('runMsg').innerHTML = `The <b>current factory</b> (process layout, weekly batches, no disruptions) gives an average lead time of <b>${fmt(BASE.avgLT, 2)} days</b>, WIP of <b>${fmt(BASE.wip)}</b> fans and <b>${fmt(BASE.forkPerWeek)}</b> forklift moves a week. Its playback is loaded below. Build your design, then run it.`; }
+baseMsg();
+
+$('clearRun').onclick = () => {
+  LAST = null; LASTMETA = null; PENDING = null; playing = false; $('skipBtn').style.display = 'none'; $('finalHead').style.display = 'none';
+  $('kpis').innerHTML = ''; $('scorecard').innerHTML = ''; $('utilBars').innerHTML = ''; $('utilSummary').innerHTML = '';
+  $('pitchBtn').disabled = true; $('playBtn').textContent = '▶ Play';
+  BASE = BASE0; startPlayback(BASE0); baseMsg();
+  $('runMsg').innerHTML += ' <b>Results cleared</b> (your run history below is kept).';
+};
+
+</script>
+</body>
+</html>
